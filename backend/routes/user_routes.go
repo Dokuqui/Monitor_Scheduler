@@ -26,6 +26,10 @@ func AdminRoutes(r *gin.Engine) {
 	admin.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
 	{
 		admin.GET("/dashboard", controllers.AdminDashboard)
+		admin.POST("/users", controllers.CreateUser)             // Route to create a user
+		admin.PUT("/users", controllers.UpdateUser)              // Route to update a user
+		admin.DELETE("/users/:username", controllers.DeleteUser) // Route to delete a user
+		admin.GET("/users", controllers.ListUsers)
 	}
 }
 
@@ -35,5 +39,6 @@ func ManagerRoutes(r *gin.Engine) {
 	manager.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("manager"))
 	{
 		manager.GET("/dashboard", controllers.ManagerDashboard) // Fixed path with a leading slash
+		manager.GET("/users", controllers.ListUsers)
 	}
 }
