@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"log"
 	"time"
 
@@ -12,7 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var userCollection *mongo.Collection = db.Client.Database("monitorScheduler").Collection("user")
+var userCollection *mongo.Collection
+
+func InitializeUserCollection() {
+	userCollection = db.Client.Database("monitorScheduler").Collection("user")
+}
 
 // CreateUser creates a new user in the db
 func CreateUser(username, lastname, firstname, password, role string) {
@@ -41,10 +44,11 @@ func GetUser(username string) (models.User, error) {
 	err := userCollection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return models.User{}, errors.New("user not found")
+			// Return a nil User and a specific error if no user is found
+			return models.User{}, nil // This indicates no user was found
 		}
-		return models.User{}, err
+		return models.User{}, err // Return the actual error for other issues
 	}
 
-	return user, nil
+	return user, nil // Return the found user
 }

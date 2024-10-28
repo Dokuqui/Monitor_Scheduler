@@ -39,37 +39,57 @@ func Signup(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	if c.BindJSON(&data) != nil {
+	// Bind JSON data
+	if err := c.BindJSON(&data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
+	// Retrieve the user from the database
 	user, err := services.GetUser(data.Username)
-	if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password)) != nil {
+	if err != nil {
+		log.Println("Error retrieving user:", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
+	// Compare the provided password with the stored hashed password
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password)) != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Create a new JWT token with HS256 signing method
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": user.Username,
 		"role":     user.Role,
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
 
+	// Sign the token
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
+		log.Println("Error signing token:", err) // Log the error for debugging
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+	// Prepare the response based on the user's role
+	response := gin.H{
+		"token":   tokenString,
+		"message": "Welcome " + user.Role + "!",
+	}
 
+	// Add redirect information
 	switch user.Role {
 	case "admin":
-		c.JSON(http.StatusOK, gin.H{"message": "Welcome Admin!", "redirect": "/admin/dashboard"})
+		response["redirect"] = "/admin/dashboard"
 	case "manager":
-		c.JSON(http.StatusOK, gin.H{"message": "Welcome Manager!", "redirect": "/manager/dashboard"})
+		response["redirect"] = "/manager/dashboard"
 	case "user":
-		c.JSON(http.StatusOK, gin.H{"message": "Welcome User!", "redirect": "/home"})
+		response["redirect"] = "/home"
 	}
+
+	// Send the response
+	c.JSON(http.StatusOK, response)
 }

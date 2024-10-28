@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// UserRoutes sets up the routes for user-related operations
 func UserRoutes(r *gin.Engine) {
 	// Public routes
 	r.POST("/signup", controllers.Signup)
@@ -15,10 +16,11 @@ func UserRoutes(r *gin.Engine) {
 	user := r.Group("/home")
 	user.Use(middleware.AuthMiddleware())
 	{
-		user.GET("/", controllers.UserHome)
+		user.GET("/", controllers.UserHome) // This route requires authentication
 	}
 }
 
+// AdminRoutes sets up the routes for admin-related operations
 func AdminRoutes(r *gin.Engine) {
 	admin := r.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("admin"))
@@ -27,10 +29,11 @@ func AdminRoutes(r *gin.Engine) {
 	}
 }
 
+// ManagerRoutes sets up the routes for manager-related operations
 func ManagerRoutes(r *gin.Engine) {
 	manager := r.Group("/manager")
 	manager.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware("manager"))
 	{
-		manager.GET("dashboard", controllers.ManagerDashboard)
+		manager.GET("/dashboard", controllers.ManagerDashboard) // Fixed path with a leading slash
 	}
 }
