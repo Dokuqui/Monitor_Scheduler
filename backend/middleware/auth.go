@@ -24,9 +24,15 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			c.Set("username", claims["username"])
-			c.Set("role", claims["role"])
-			c.Next()
+			username := claims["username"].(string)
+            userGroup := claims["user_group"].(string)
+            role := claims["role"].(string)
+
+            c.Set("username", username)
+            c.Set("user_group", userGroup)
+            c.Set("role", role)
+
+            c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			c.Abort()
@@ -44,7 +50,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 func RoleMiddleware(requiredRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role := c.GetString("role")
-		if role != requiredRole {
+		if role != requiredRole && role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have correct permission and access"})
 			c.Abort()
 			return
