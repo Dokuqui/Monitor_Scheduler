@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/dokuqui/monitor_scheduler/backend/db"
 	"github.com/dokuqui/monitor_scheduler/backend/models"
@@ -30,6 +31,7 @@ func AuthUser(username, lastname, firstname, password, role string) {
 		"firstname":  firstname,
 		"password":   password,
 		"role":       role,
+		"last_login": now,
 		"created_at": now,
 		"updated_at": now,
 	})
@@ -39,7 +41,7 @@ func AuthUser(username, lastname, firstname, password, role string) {
 	}
 }
 
-func CreateUser(username, lastname, firstname, password, role, manager string) error {
+func CreateUser(username, lastname, firstname, password, role, userGroup, manager string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -56,7 +58,9 @@ func CreateUser(username, lastname, firstname, password, role, manager string) e
 		"firstname":  firstname,
 		"password":   string(hashedPassword),
 		"role":       role,
+		"user_group": userGroup,
 		"manager":    manager,
+		"last_login": now,
 		"created_at": now,
 		"updated_at": now,
 	})
@@ -145,4 +149,22 @@ func ListUsersByManager(managerUsername string) ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+// ListUsersByUserGroup retrieves users in a specific user group
+func ListUsersByUserGroup(userGroup string) ([]models.User, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var users []models.User
+    cursor, err := userCollection.Find(ctx, bson.M{"user_group": userGroup})
+    if err != nil {
+        return nil, err
+    }
+
+    if err = cursor.All(ctx, &users); err != nil {
+        return nil, err
+    }
+
+    return users, nil
 }

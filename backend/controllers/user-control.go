@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/dokuqui/monitor_scheduler/backend/models"
 	"github.com/dokuqui/monitor_scheduler/backend/services"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateUser(c *gin.Context) {
@@ -20,7 +22,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	err := services.CreateUser(user.Username, user.Lastname, user.Firstname, user.Password, user.Role, user.Manager)
+	err := services.CreateUser(user.Username, user.Lastname, user.Firstname, user.Password, user.Role, user.UserGroup, user.Manager)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
@@ -94,18 +96,44 @@ func ListUsers(c *gin.Context) {
 }
 
 func UpdateOwnCredentials(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
-		return
-	}
+	var request struct {
+        Firstname string `json:"firstname"`
+        Lastname  string `json:"lastname"`
+        Password  string `json:"password"`
+    }
 
-	username := c.GetString("username")
-	err := services.UpdateUser(username, user.Lastname, user.Firstname, user.Password, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update credentials"})
-		return
-	}
+    if err := c.ShouldBindJSON(&request); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+        return
+    }
 
-	c.JSON(http.StatusOK, gin.H{"message": "Credentials updated successfully"})
+    username := c.GetString("username")
+
+    // Retrieve the current user from the database
+    user, err := services.GetUserByUsername(username)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+        return
+    }
+
+    // Update only the allowed fields
+    user.Firstname = request.Firstname
+    user.Lastname = request.Lastname
+
+    if request.Password != "" {
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+            return
+        }
+        user.Password = string(hashedPassword)
+    }
+
+	err = services.UpdateUser(user.Username, user.Lastname, user.Firstname, user.Password, user.Role)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update credentials"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Credentials updated successfully"})
 }

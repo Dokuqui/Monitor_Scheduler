@@ -30,6 +30,7 @@ func SetupRouter() *gin.Engine {
 	UserRoutes(r)
 	AdminRoutes(r)
 	ManagerRoutes(r)
+	ScriptRoutes(r)
 
 	return r
 }
