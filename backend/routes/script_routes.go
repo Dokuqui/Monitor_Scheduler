@@ -19,5 +19,6 @@ func ScriptRoutes(r *gin.Engine) {
         scripts.GET("/user", controllers.GetScriptsByUser)
         scripts.GET("/usergroup", middleware.RoleMiddleware("manager"), controllers.GetScriptsByUserGroup)
         scripts.GET("/all", middleware.RoleMiddleware("admin"), controllers.GetAllScripts)
+        scripts.GET("/logs/:id", controllers.GetLogsByScriptID)
     }
 }
